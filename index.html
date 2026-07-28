@@ -727,6 +727,37 @@ function deleteQuestion(id) {
   save(); renderList();
 }
 
+function editQuestion(id) {
+  var pkg = getPkg(); if (!pkg) return;
+  var q = pkg.questions.find(function(item) { return item.id === id; });
+  if (!q) return;
+  
+  setType(q.type);
+  document.getElementById('inp-question').value = q.question || '';
+  document.getElementById('inp-category').value = q.category || '';
+  document.getElementById('inp-explanation').value = q.explanation || '';
+  currentImageData = q.image || '';
+  if (currentImageData) {
+    document.getElementById('img-preview').src = currentImageData;
+    document.getElementById('img-preview-box').style.display = 'block';
+  } else {
+    document.getElementById('img-preview-box').style.display = 'none';
+  }
+  
+  if (q.type === 'mc') {
+    document.getElementById('opt-a').value = q.options.a || '';
+    document.getElementById('opt-b').value = q.options.b || '';
+    document.getElementById('opt-c').value = q.options.c || '';
+    document.getElementById('opt-d').value = q.options.d || '';
+    document.getElementById('correct-ans').value = q.correct || 'a';
+  } else {
+    document.getElementById('essay-answer').value = q.answer || '';
+  }
+  
+  deleteQuestion(id);
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
 /* ══ RENDER LIST ══ */
 function renderList() {
   var pkg = getPkg(); if (!pkg) return;
@@ -763,6 +794,7 @@ function renderList() {
           (q.category ? '<span class="q-cat-badge">&#127991;&#65039; '+q.category+'</span>' : '')+
         '</div>'+
         '<div class="q-item-actions">'+
+          '<button class="btn btn-ghost btn-sm" style="color:var(--primary);margin-right:8px" onclick="editQuestion('+q.id+')">&#9999;&#65039; Edit</button>'+
           '<button class="btn btn-danger btn-sm" onclick="deleteQuestion('+q.id+')">&#128465; Hapus</button>'+
         '</div>'+
       '</div>'+
@@ -796,7 +828,7 @@ function parseSoal() {
     block = block.trim(); if (!block) return;
     var lines = block.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; });
     if (lines.length < 2) return;
-    var qLine='', optLines=[], keyLine='', qLineIdx=-1;
+    var qLine='', optLines=[], keyLine='', expLine='', qLineIdx=-1;
     for (var i=0;i<lines.length;i++) {
       if (/^\d+[\.\)]\s/.test(lines[i])||(i===0&&!/^[A-Da-d][\.\)]/i.test(lines[i]))) {
         qLine=lines[i].replace(/^\d+[\.\)]\s*/,'').trim(); qLineIdx=i; break;
@@ -806,6 +838,7 @@ function parseSoal() {
     for (var j=qLineIdx+1;j<lines.length;j++) {
       var l=lines[j];
       if (/^(jawaban|kunci\s*jawaban|kunci|answer|ans)\s*[:=]/i.test(l)){ keyLine=l; continue; }
+      if (/^(keterangan|penjelasan|bahas|pembahasan|exp|explanation)\s*[:=]/i.test(l)){ expLine=l.replace(/^(keterangan|penjelasan|bahas|pembahasan|exp|explanation)\s*[:=]/i,'').trim(); continue; }
       if (/^[\(\s]*[A-Da-d][\.\)\s]/i.test(l)){ optLines.push(l); continue; }
       var inlineMatch=l.match(/[A-Da-d][\.\)]\s*[^\s]/gi);
       if (inlineMatch&&inlineMatch.length>=2) {
@@ -818,7 +851,7 @@ function parseSoal() {
     if (keyLine){ var km=keyLine.match(/[:=]\s*([A-Da-d])/i); if(km) correctKey=km[1].toLowerCase(); }
     var hasOpts=opts.a&&opts.b;
     if (!qLine) return;
-    parsedItems.push({ question:qLine, options:opts, correct:correctKey||'a', hasOpts:hasOpts });
+    parsedItems.push({ question:qLine, options:opts, correct:correctKey||'a', hasOpts:hasOpts, explanation:expLine });
   });
   if (parsedItems.length===0) return alert('Tidak ada soal yang berhasil diurai.\n\nPastikan format sesuai dan pisahkan soal dengan baris kosong.');
   renderParsedPreview();
@@ -844,7 +877,8 @@ function renderParsedPreview() {
       '<button class="pi-del" onclick="removeParsedItem('+idx+')">&#10005;</button>'+
       '<div class="pi-q">'+item.question+'</div>'+
       (item.hasOpts?'<div class="parsed-opts">'+optsHtml+'</div>':'<div style="color:var(--yellow);font-size:.8rem;margin-bottom:10px">&#9888;&#65039; Pilihan tidak terdeteksi, disimpan sebagai Esai</div>')+
-      (item.hasOpts?'<div class="pi-correct-row"><label>Jawaban Benar:</label>'+selHtml+'</div>':'<div class="field-group" style="margin-bottom:10px"><label>Kunci Jawaban</label><input type="text" id="pessay-'+idx+'" value="'+item.correct+'" style="padding:8px 12px;border-radius:8px;font-size:.88rem"></div>');
+      (item.hasOpts?'<div class="pi-correct-row"><label>Jawaban Benar:</label>'+selHtml+'</div>':'<div class="field-group" style="margin-bottom:10px"><label>Kunci Jawaban</label><input type="text" id="pessay-'+idx+'" value="'+item.correct+'" style="padding:8px 12px;border-radius:8px;font-size:.88rem"></div>')+
+      '<div class="field-group" style="margin-top:10px"><label>Keterangan / Pembahasan (Opsional)</label><input type="text" id="pexp-'+idx+'" value="'+(item.explanation||'')+'" style="padding:8px 12px;border-radius:8px;font-size:.88rem"></div>';
     plist.appendChild(div);
   });
   preview.scrollIntoView({behavior:'smooth',block:'start'});
@@ -858,7 +892,8 @@ function removeParsedItem(idx){ parsedItems.splice(idx,1); if(parsedItems.length
 function importParsed() {
   var pkg=getPkg(); if(!pkg||parsedItems.length===0) return;
   parsedItems.forEach(function(item,idx){
-    var obj={ id:Date.now()+idx*7, category:'', explanation:'' };
+    var obj={ id:Date.now()+idx*7, category:'' };
+    obj.explanation = (document.getElementById('pexp-'+idx)||{}).value||item.explanation||'';
     if (item.hasOpts) {
       obj.type='mc'; obj.question=item.question; obj.options=item.options;
       obj.correct=(document.getElementById('psel-'+idx)||{}).value||item.correct;
