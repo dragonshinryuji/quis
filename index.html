@@ -1036,7 +1036,7 @@ function openShareModal(pkgId) {
   });
   var json = JSON.stringify([lite]);
   var encoded = btoa(unescape(encodeURIComponent(json)));
-  var url = 'https://dragonshinryuji.github.io/quizmaker-pro/#share=' + encoded;
+  var url = 'https://dragonshinryuji.github.io/quis/#share=' + encoded;
   document.getElementById('share-link-box').textContent = url;
   // warn jika terlalu besar
   var warn = document.getElementById('share-size-warn');
