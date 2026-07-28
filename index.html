@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuizMaker Pro – Paket Soal</title>
+  <meta name="description" content="Aplikasi kuis dengan sistem paket soal – buat beberapa paket kuis berbeda dan mainkan kapan saja." />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#7c5cfc" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="QuizMaker" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0e1a; --surface: #13152a; --card: #1a1d35; --card2: #1f2340;
+      --border: rgba(255,255,255,0.08); --accent: #7c5cfc; --accent2: #a78bfa;
+      --green: #22d3a0; --red: #f87171; --yellow: #fbbf24;
+      --text: #f1f0ff; --muted: #8b8fa8; --radius: 16px; --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    body::before { content:''; position:fixed; width:600px; height:600px; top:-200px; left:-150px; background:radial-gradient(circle,rgba(124,92,252,.18) 0%,transparent 70%); pointer-events:none; }
+    body::after  { content:''; position:fixed; width:500px; height:500px; bottom:-150px; right:-100px; background:radial-gradient(circle,rgba(34,211,160,.12) 0%,transparent 70%); pointer-events:none; }
+
+    /* ── HEADER ── */
+    header { display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--border); backdrop-filter:blur(10px); position:sticky; top:0; z-index:99; background:rgba(13,14,26,.9); gap:12px; flex-wrap:wrap; }
+    .logo { display:flex; align-items:center; gap:10px; font-size:1.3rem; font-weight:800; letter-spacing:-.5px; }
+    .logo span { color:var(--accent2); }
+    .logo-icon { width:36px; height:36px; background:linear-gradient(135deg,var(--accent),var(--green)); border-radius:10px; display:grid; place-items:center; font-size:1.1rem; }
+    .breadcrumb { display:flex; align-items:center; gap:8px; font-size:0.88rem; color:var(--muted); }
+    .breadcrumb .bc-sep { opacity:.4; }
+    .breadcrumb .bc-cur { color:var(--text); font-weight:600; }
+    .bc-back { background:rgba(255,255,255,.06); border:1px solid var(--border); color:var(--muted); padding:7px 14px; border-radius:50px; font-family:'Outfit',sans-serif; font-size:.85rem; cursor:pointer; transition:all .2s; }
+    .bc-back:hover { background:var(--card); color:var(--text); }
+
+    /* ── PAGES ── */
+    .page { display:none; }
+    .page.active { display:block; }
+    .wrap { max-width:900px; margin:36px auto; padding:0 20px 120px; }
+
+    /* ── COMMON CARD ── */
+    .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:26px; margin-bottom:24px; box-shadow:var(--shadow); }
+    .card h3 { font-size:.95rem; font-weight:700; margin-bottom:16px; color:var(--accent2); display:flex; align-items:center; gap:8px; }
+    label { font-size:.8rem; color:var(--muted); display:block; margin-bottom:7px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; }
+    input[type=text], textarea, select { width:100%; background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:13px 16px; color:var(--text); font-family:'Outfit',sans-serif; font-size:.97rem; outline:none; transition:border-color .2s,box-shadow .2s; resize:vertical; }
+    input[type=text]:focus, textarea:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(124,92,252,.2); }
+    select option { background:var(--card2); }
+    textarea { min-height:95px; line-height:1.6; }
+    .field-group { margin-bottom:18px; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+
+    /* ── BUTTONS ── */
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border-radius:50px; font-family:'Outfit',sans-serif; font-size:.88rem; font-weight:600; cursor:pointer; border:none; transition:all .25s; white-space:nowrap; }
+    .btn-primary { background:linear-gradient(135deg,var(--accent),#5b21b6); color:#fff; box-shadow:0 4px 16px rgba(124,92,252,.4); }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(124,92,252,.5); }
+    .btn-green { background:linear-gradient(135deg,var(--green),#0d9488); color:#fff; box-shadow:0 4px 16px rgba(34,211,160,.3); }
+    .btn-green:hover { transform:translateY(-2px); }
+    .btn-yellow { background:linear-gradient(135deg,var(--yellow),#d97706); color:#1a1000; box-shadow:0 4px 16px rgba(251,191,36,.35); }
+    .btn-yellow:hover { transform:translateY(-2px); }
+    .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--muted); }
+    .btn-ghost:hover { background:var(--card); color:var(--text); }
+    .btn-danger { background:rgba(248,113,113,.15); border:1px solid rgba(248,113,113,.3); color:var(--red); }
+    .btn-danger:hover { background:rgba(248,113,113,.25); }
+    .btn-sm { padding:7px 14px; font-size:.8rem; }
+    .row-actions { display:flex; gap:10px; flex-wrap:wrap; }
+
+    /* ── TYPE PILLS ── */
+    .type-row { display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+    .type-pill { padding:8px 18px; border-radius:50px; border:1px solid var(--border); background:var(--card2); color:var(--muted); font-family:'Outfit',sans-serif; font-size:.84rem; font-weight:500; cursor:pointer; transition:all .2s; }
+    .type-pill.selected { background:rgba(124,92,252,.2); border-color:var(--accent); color:var(--accent2); }
+
+    /* ── OPTIONS ── */
+    .options-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+    .option-item { display:flex; align-items:center; gap:10px; }
+    .opt-circle { width:32px; height:32px; min-width:32px; border-radius:50%; background:var(--card2); border:1px solid var(--border); display:grid; place-items:center; font-size:.8rem; font-weight:700; color:var(--muted); }
+
+    /* ── CATEGORY SUGGEST ── */
+    .category-wrap { position:relative; }
+    .cat-suggestions { position:absolute; top:100%; left:0; right:0; z-index:60; background:var(--card2); border:1px solid var(--accent); border-radius:10px; overflow:hidden; margin-top:4px; box-shadow:var(--shadow); display:none; }
+    .cat-sug-item { padding:10px 16px; cursor:pointer; font-size:.9rem; transition:background .15s; }
+    .cat-sug-item:hover { background:rgba(124,92,252,.15); color:var(--accent2); }
+
+    /* ── EXPLANATION ── */
+    .explanation-field textarea { min-height:70px; border-color:rgba(251,191,36,.3); }
+    .explanation-field label { color:var(--yellow); }
+    .explanation-field textarea:focus { border-color:var(--yellow); box-shadow:0 0 0 3px rgba(251,191,36,.15); }
+
+    /* ═══════════════════════════════════
+       HOME – PACKAGE CARDS
+    ═══════════════════════════════════ */
+    .page-title { font-size:1.7rem; font-weight:800; margin-bottom:6px; }
+    .page-sub { color:var(--muted); margin-bottom:28px; font-size:.95rem; }
+
+    .pkg-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:20px; margin-bottom:100px; }
+
+    .pkg-card {
+      background:var(--card); border:1px solid var(--border); border-radius:20px;
+      padding:24px; cursor:pointer; transition:all .25s; animation:fadeIn .3s ease;
+      display:flex; flex-direction:column; gap:14px; position:relative; overflow:hidden;
+    }
+    .pkg-card::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(124,92,252,.05),transparent); pointer-events:none; }
+    .pkg-card:hover { border-color:rgba(124,92,252,.5); transform:translateY(-4px); box-shadow:0 16px 40px rgba(0,0,0,.5); }
+    .pkg-card-icon { font-size:2rem; }
+    .pkg-card-name { font-size:1.1rem; font-weight:800; }
+    .pkg-card-meta { display:flex; gap:8px; flex-wrap:wrap; }
+    .pkg-meta-chip { font-size:.72rem; font-weight:600; padding:3px 10px; border-radius:50px; background:rgba(124,92,252,.12); color:var(--accent2); border:1px solid rgba(124,92,252,.25); }
+    .pkg-meta-chip.green { background:rgba(34,211,160,.1); color:var(--green); border-color:rgba(34,211,160,.25); }
+    .pkg-card-desc { font-size:.83rem; color:var(--muted); line-height:1.5; }
+    .pkg-card-actions { display:flex; gap:8px; margin-top:auto; }
+
+    /* Add package button */
+    .pkg-add-card {
+      background:transparent; border:2px dashed rgba(124,92,252,.3); border-radius:20px;
+      padding:24px; cursor:pointer; transition:all .25s; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:10px; min-height:160px;
+      color:var(--muted);
+    }
+    .pkg-add-card:hover { border-color:var(--accent); color:var(--accent2); background:rgba(124,92,252,.05); }
+    .pkg-add-card .add-icon { font-size:2rem; }
+    .pkg-add-card span { font-size:.9rem; font-weight:600; }
+
+    /* ── New Package Modal ── */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(6px); z-index:200; display:none; place-items:center; }
+    .modal-overlay.open { display:grid; }
+    .modal-box { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:32px; width:min(480px,92vw); box-shadow:0 24px 60px rgba(0,0,0,.6); animation:slideUp .3s ease; }
+    .modal-box h3 { font-size:1.2rem; font-weight:800; margin-bottom:20px; }
+    .modal-actions { display:flex; gap:10px; margin-top:6px; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ═══════════════════════════════════
+       EDITOR PAGE (inside a package)
+    ═══════════════════════════════════ */
+    .pkg-header-bar {
+      background:var(--card); border:1px solid var(--border); border-radius:16px;
+      padding:20px 24px; margin-bottom:24px;
+      display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    }
+    .pkg-header-bar .pkg-name-big { font-size:1.3rem; font-weight:800; }
+    .pkg-header-bar .pkg-stats { color:var(--muted); font-size:.88rem; }
+    .pkg-header-bar .pkg-stats strong { color:var(--green); }
+
+    /* Question list inside editor */
+    .q-list { display:flex; flex-direction:column; gap:0; }
+    .q-item {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:0; padding:0;
+      animation:fadeIn .3s ease; transition:border-color .2s;
+    }
+    /* First and last rounding */
+    .q-item:first-child { border-radius:16px 16px 0 0; }
+    .q-item:last-child  { border-radius:0 0 16px 16px; border-bottom:1px solid var(--border); }
+    .q-item:only-child  { border-radius:16px; }
+    /* Separator line between items */
+    .q-item + .q-item { border-top:none; }
+
+    .q-item-header {
+      display:flex; align-items:center; gap:12px;
+      padding:14px 20px;
+      border-top:1px solid var(--border);
+      background:rgba(124,92,252,.04);
+    }
+    .q-item:first-child .q-item-header { border-top:none; }
+    .q-num { min-width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,var(--accent),#5b21b6); display:grid; place-items:center; font-size:.75rem; font-weight:700; flex-shrink:0; }
+    .q-header-info { flex:1; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .q-type-badge { font-size:.68rem; font-weight:600; padding:3px 9px; border-radius:50px; background:rgba(124,92,252,.15); color:var(--accent2); border:1px solid rgba(124,92,252,.3); }
+    .q-cat-badge  { font-size:.68rem; font-weight:600; padding:3px 9px; border-radius:50px; background:rgba(251,191,36,.12); color:var(--yellow); border:1px solid rgba(251,191,36,.3); }
+    .q-item-body { padding:0 20px 16px 52px; }
+    .q-text { font-weight:600; font-size:.95rem; line-height:1.45; margin-bottom:10px; }
+    .q-answers { display:flex; flex-wrap:wrap; gap:6px; }
+    .q-ans-chip { padding:4px 11px; border-radius:50px; font-size:.75rem; background:var(--card2); border:1px solid var(--border); color:var(--muted); }
+    .q-ans-chip.correct { background:rgba(34,211,160,.15); border-color:var(--green); color:var(--green); }
+    .q-item-actions { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    .empty-state { text-align:center; padding:50px 20px; border:2px dashed var(--border); border-radius:var(--radius); }
+    .empty-state .icon { font-size:2.8rem; margin-bottom:12px; }
+    .empty-state p { color:var(--muted); }
+
+    /* ── PASTE SECTION ── */
+    .paste-area { min-height:200px; font-size:.92rem; line-height:1.7; border-color:rgba(34,211,160,.3) !important; }
+    .paste-area:focus { border-color:var(--green) !important; box-shadow:0 0 0 3px rgba(34,211,160,.15) !important; }
+    .format-hint { background:var(--card2); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin-bottom:18px; font-size:.82rem; color:var(--muted); line-height:1.8; }
+    .format-hint code { background:rgba(124,92,252,.15); color:var(--accent2); padding:1px 6px; border-radius:4px; font-family:monospace; font-size:.88em; }
+    .parse-preview { margin-top:20px; display:none; }
+    .parse-preview h4 { font-size:.9rem; color:var(--green); font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .parsed-item { background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:12px; position:relative; animation:fadeIn .3s ease; }
+    .parsed-item .pi-num { position:absolute; top:14px; left:-12px; width:28px; height:28px; background:linear-gradient(135deg,var(--accent),#5b21b6); border-radius:50%; display:grid; place-items:center; font-size:.75rem; font-weight:700; }
+    .parsed-item .pi-q { font-weight:600; margin-bottom:10px; font-size:.95rem; line-height:1.5; padding-left:6px; }
+    .parsed-opts { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+    .parsed-opt { display:flex; align-items:center; gap:8px; font-size:.85rem; }
+    .parsed-opt .po-key { width:24px; height:24px; min-width:24px; border-radius:50%; background:var(--card); border:1px solid var(--border); display:grid; place-items:center; font-size:.75rem; font-weight:700; color:var(--muted); }
+    .parsed-opt.is-correct .po-key { background:var(--green); color:#0d1a15; border-color:var(--green); }
+    .parsed-opt.is-correct { color:var(--green); }
+    .pi-correct-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+    .pi-correct-row label { text-transform:none; letter-spacing:0; font-size:.82rem; color:var(--muted); margin:0; }
+    .pi-correct-select { width:auto; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--text); font-size:.85rem; cursor:pointer; }
+    .pi-del { position:absolute; top:12px; right:12px; background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.2); color:var(--red); border-radius:8px; padding:4px 10px; font-size:.75rem; cursor:pointer; }
+    .pi-del:hover { background:rgba(248,113,113,.2); }
+    .pi-cat-input { width:auto; flex:1; max-width:200px; padding:6px 12px; border-radius:8px; font-size:.85rem; }
+    .parse-count-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(34,211,160,.12); border:1px solid rgba(34,211,160,.3); color:var(--green); padding:4px 12px; border-radius:50px; font-size:.8rem; font-weight:600; }
+
+    /* ── BOTTOM START BAR ── */
+    .start-bar { position:fixed; bottom:0; left:0; right:0; padding:14px 32px; background:rgba(13,14,26,.93); backdrop-filter:blur(10px); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; z-index:99; transform:translateY(100%); transition:transform .4s cubic-bezier(.4,0,.2,1); gap:12px; flex-wrap:wrap; }
+    .start-bar.visible { transform:translateY(0); }
+    .start-bar-info { color:var(--muted); font-size:.9rem; }
+    .start-bar-info strong { color:var(--text); }
+
+    /* ═══════════════════════════════════
+       QUIZ PAGE
+    ═══════════════════════════════════ */
+    .quiz-wrap { max-width:740px; margin:36px auto; padding:0 20px 100px; }
+    .quiz-header-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .quiz-pkg-name { font-size:.82rem; font-weight:600; color:var(--accent2); }
+    .quiz-score-label { font-size:.82rem; color:var(--muted); }
+    .quiz-score-label strong { color:var(--text); }
+    .progress-bar-wrap { height:7px; background:var(--card); border-radius:99px; overflow:hidden; margin-bottom:10px; }
+    .progress-bar-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--green)); border-radius:99px; transition:width .5s cubic-bezier(.4,0,.2,1); }
+    .quiz-meta { display:flex; justify-content:space-between; color:var(--muted); font-size:.85rem; margin-bottom:26px; }
+    .quiz-meta strong { color:var(--text); }
+    .quiz-question-card { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:32px; margin-bottom:22px; box-shadow:var(--shadow); animation:slideUpQ .4s ease; }
+    @keyframes slideUpQ { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .quiz-q-label { color:var(--accent2); font-size:.78rem; font-weight:600; letter-spacing:1px; text-transform:uppercase; margin-bottom:12px; }
+    .quiz-q-text { font-size:1.22rem; font-weight:700; line-height:1.55; }
+    .quiz-options { display:flex; flex-direction:column; gap:11px; }
+    .quiz-option { display:flex; align-items:center; gap:14px; padding:15px 18px; background:var(--card2); border:1px solid var(--border); border-radius:12px; cursor:pointer; transition:all .2s; font-family:'Outfit',sans-serif; font-size:.95rem; color:var(--text); text-align:left; width:100%; }
+    .quiz-option:hover:not(:disabled) { background:rgba(124,92,252,.1); border-color:rgba(124,92,252,.4); transform:translateX(4px); }
+    .quiz-option.correct-ans { background:rgba(34,211,160,.12); border-color:var(--green); color:var(--green); }
+    .quiz-option.wrong-ans { background:rgba(248,113,113,.1); border-color:var(--red); color:var(--red); }
+    .quiz-option:disabled { cursor:default; }
+    .opt-cq { width:36px; height:36px; min-width:36px; border-radius:50%; background:var(--card); border:1px solid var(--border); display:grid; place-items:center; font-size:.84rem; font-weight:700; transition:all .2s; }
+    .quiz-option.correct-ans .opt-cq { background:var(--green); color:#0d1a15; border-color:var(--green); }
+    .quiz-option.wrong-ans .opt-cq { background:var(--red); color:#1a0505; border-color:var(--red); }
+    .quiz-option.selected .opt-cq { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .essay-input { width:100%; background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:16px 20px; color:var(--text); font-family:'Outfit',sans-serif; font-size:1rem; outline:none; resize:vertical; min-height:120px; line-height:1.6; transition:border-color .2s,box-shadow .2s; }
+    .essay-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(124,92,252,.2); }
+
+    /* FEEDBACK */
+    .feedback-box { border-radius:14px; margin-top:18px; display:none; overflow:hidden; animation:popIn .35s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes popIn { from{opacity:0;transform:scale(.95) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .fb-header { display:flex; align-items:center; gap:12px; padding:16px 20px; font-size:1rem; font-weight:700; }
+    .fb-icon { width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-size:1.2rem; flex-shrink:0; }
+    .fb-body { padding:0 20px 16px; font-size:.9rem; line-height:1.65; }
+    .fb-explanation { margin-top:10px; padding:12px 14px; border-radius:10px; font-size:.85rem; line-height:1.6; font-style:italic; }
+    .feedback-box.correct { background:rgba(34,211,160,.07); border:1px solid rgba(34,211,160,.4); }
+    .feedback-box.correct .fb-header { color:var(--green); border-bottom:1px solid rgba(34,211,160,.15); }
+    .feedback-box.correct .fb-icon { background:rgba(34,211,160,.15); }
+    .feedback-box.correct .fb-body { color:#b2f0dc; }
+    .feedback-box.correct .fb-explanation { background:rgba(34,211,160,.08); border:1px solid rgba(34,211,160,.2); color:#9eddc8; }
+    .feedback-box.wrong { background:rgba(248,113,113,.07); border:1px solid rgba(248,113,113,.4); }
+    .feedback-box.wrong .fb-header { color:var(--red); border-bottom:1px solid rgba(248,113,113,.15); }
+    .feedback-box.wrong .fb-icon { background:rgba(248,113,113,.15); }
+    .feedback-box.wrong .fb-body { color:#f9c5c5; }
+    .feedback-box.wrong .fb-explanation { background:rgba(248,113,113,.07); border:1px solid rgba(248,113,113,.2); color:#f0b8b8; }
+    .feedback-box.essay-show { background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.4); }
+    .feedback-box.essay-show .fb-header { color:var(--yellow); border-bottom:1px solid rgba(251,191,36,.15); }
+    .feedback-box.essay-show .fb-icon { background:rgba(251,191,36,.15); }
+    .feedback-box.essay-show .fb-body { color:#fde9a2; }
+    .feedback-box.essay-show .fb-explanation { background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.2); color:#f5dea3; }
+    .quiz-nav { display:flex; justify-content:space-between; align-items:center; margin-top:22px; }
+
+    /* RESULT */
+    .result-wrap { max-width:640px; margin:50px auto; padding:0 20px; text-align:center; }
+    .result-ring { width:156px; height:156px; border-radius:50%; background:conic-gradient(var(--accent) calc(var(--pct)*3.6deg),var(--card) 0deg); display:grid; place-items:center; margin:0 auto 28px; box-shadow:0 0 40px rgba(124,92,252,.3); position:relative; }
+    .result-ring::before { content:''; position:absolute; inset:14px; border-radius:50%; background:var(--surface); }
+    .result-pct { position:relative; z-index:1; font-size:2.2rem; font-weight:800; }
+    .result-title { font-size:1.7rem; font-weight:800; margin-bottom:8px; }
+    .result-sub { color:var(--muted); margin-bottom:28px; }
+    .result-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:32px; }
+    .stat-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; }
+    .stat-val { font-size:1.7rem; font-weight:800; margin-bottom:4px; }
+    .stat-label { font-size:.78rem; color:var(--muted); font-weight:500; }
+    .result-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .review-list { margin-top:36px; text-align:left; }
+    .review-item { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:12px; }
+    .review-item.correct-item { border-color:rgba(34,211,160,.3); }
+    .review-item.wrong-item   { border-color:rgba(248,113,113,.3); }
+    .review-badge { display:inline-flex; align-items:center; gap:5px; font-size:.75rem; font-weight:600; padding:3px 11px; border-radius:50px; margin-bottom:8px; margin-right:5px; }
+    .review-badge.c { background:rgba(34,211,160,.15); color:var(--green); }
+    .review-badge.w { background:rgba(248,113,113,.15); color:var(--red); }
+    .review-q { font-weight:600; margin-bottom:7px; font-size:.95rem; }
+    .review-ans { font-size:.86rem; color:var(--muted); }
+    .review-ans span { font-weight:600; color:var(--text); }
+    .review-exp { margin-top:8px; font-size:.82rem; color:var(--muted); font-style:italic; padding:8px 12px; background:var(--card2); border-radius:8px; border-left:3px solid var(--accent); }
+
+    #confetti-canvas { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:999; }
+
+    @media(max-width:620px) {
+      header { padding:12px 16px; }
+      .logo { font-size:1.1rem; }
+      .pkg-grid { grid-template-columns:1fr; }
+      .options-grid, .parsed-opts, .form-row { grid-template-columns:1fr; }
+      .result-stats { grid-template-columns:1fr 1fr; }
+      .quiz-question-card { padding:20px; }
+      .quiz-q-text { font-size:1.05rem; }
+      .card { padding:18px; }
+      .q-item-body { padding-left:20px; }
+    }
+
+    /* ── IMAGE UPLOAD ── */
+    .img-upload-area { border:2px dashed rgba(124,92,252,.3); border-radius:12px; padding:18px; cursor:pointer; transition:all .2s; text-align:center; display:flex; align-items:center; justify-content:center; background:var(--card2); min-height:90px; }
+    .img-upload-area:hover { border-color:var(--accent); background:rgba(124,92,252,.06); }
+    .img-upload-placeholder { color:var(--muted); font-size:.88rem; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; }
+    .img-upload-placeholder .up-icon { font-size:2rem; }
+    .img-preview-thumb { max-width:100%; max-height:200px; border-radius:8px; display:block; margin:0 auto; object-fit:contain; }
+    .q-img { width:100%; max-height:160px; object-fit:contain; border-radius:10px; margin-bottom:10px; border:1px solid var(--border); background:var(--card2); padding:4px; }
+    .quiz-q-img { width:100%; max-height:280px; object-fit:contain; border-radius:14px; margin:14px 0; border:1px solid rgba(124,92,252,.2); background:var(--card2); padding:6px; display:block; }
+
+    /* ── PWA INSTALL BANNER ── */
+    .pwa-banner { position:fixed; bottom:80px; left:16px; right:16px; max-width:600px; margin-left:auto; margin-right:auto; background:linear-gradient(135deg,var(--card),var(--card2)); border:1px solid rgba(124,92,252,.45); border-radius:18px; padding:16px 18px; display:flex; align-items:center; gap:14px; z-index:198; box-shadow:0 12px 40px rgba(0,0,0,.55),0 0 0 1px rgba(124,92,252,.15); animation:slideUp .4s cubic-bezier(.4,0,.2,1); }
+    .pwa-icon { font-size:2.2rem; flex-shrink:0; }
+    .pwa-text { flex:1; min-width:0; }
+    .pwa-text strong { display:block; font-size:.93rem; font-weight:700; margin-bottom:2px; }
+    .pwa-text span { color:var(--muted); font-size:.78rem; }
+    .pwa-banner-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:1.1rem; padding:6px; line-height:1; flex-shrink:0; transition:color .2s; }
+    .pwa-banner-close:hover { color:var(--text); }
+
+    /* ── SHARE MODAL ── */
+    .share-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); z-index:300; display:none; place-items:center; padding:16px; }
+    .share-modal-overlay.open { display:grid; }
+    .share-modal-box { background:var(--card); border:1px solid rgba(124,92,252,.4); border-radius:24px; padding:32px; width:min(500px,100%); box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(124,92,252,.1); animation:slideUp .35s cubic-bezier(.4,0,.2,1); }
+    .share-modal-box h3 { font-size:1.2rem; font-weight:800; margin-bottom:6px; }
+    .share-modal-box p { color:var(--muted); font-size:.85rem; margin-bottom:24px; }
+    .qr-wrap { background:#fff; border-radius:16px; padding:16px; display:inline-block; margin:0 auto 20px; display:flex; justify-content:center; }
+    .qr-wrap canvas, .qr-wrap img { border-radius:8px; }
+    .share-link-box { background:var(--card2); border:1px solid var(--border); border-radius:12px; padding:12px 16px; font-size:.78rem; color:var(--muted); word-break:break-all; line-height:1.6; margin-bottom:16px; max-height:80px; overflow-y:auto; }
+    .share-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+    .share-modal-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,.07); border:none; color:var(--muted); cursor:pointer; font-size:1.1rem; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; transition:all .2s; }
+    .share-modal-close:hover { background:rgba(255,255,255,.15); color:var(--text); }
+    .share-modal-inner { position:relative; }
+    .share-pkg-name { font-size:.82rem; color:var(--accent2); font-weight:600; margin-bottom:4px; }
+    .share-size-warn { background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); border-radius:10px; padding:10px 14px; font-size:.8rem; color:var(--yellow); margin-bottom:16px; display:none; }
+    /* Import banner */
+    .import-banner { position:fixed; top:0; left:0; right:0; z-index:400; background:linear-gradient(135deg,#1a1d35,#232650); border-bottom:2px solid var(--accent); padding:18px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; box-shadow:0 8px 32px rgba(0,0,0,.5); animation:slideDown .4s ease; }
+    @keyframes slideDown { from{transform:translateY(-100%)} to{transform:translateY(0)} }
+    .import-banner-text { flex:1; }
+    .import-banner-text strong { display:block; font-size:1rem; margin-bottom:3px; }
+    .import-banner-text span { color:var(--muted); font-size:.83rem; }
+    .import-banner-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+
+<!-- HEADER -->
+<header>
+  <div class="logo"><div class="logo-icon">&#127919;</div>Quiz<span>Maker</span></div>
+  <div class="breadcrumb" id="breadcrumb" style="display:none">
+    <button class="bc-back" onclick="goHome()">&#8592; Paket Soal</button>
+    <span class="bc-sep">›</span>
+    <span class="bc-cur" id="bc-pkg-name">–</span>
+  </div>
+</header>
+
+<!-- ═══ MODAL: Buat Paket Baru ═══ -->
+<div class="modal-overlay" id="modal-new-pkg">
+  <div class="modal-box">
+    <h3>&#128196; Buat Paket Soal Baru</h3>
+    <div class="field-group">
+      <label>Nama Paket</label>
+      <input type="text" id="new-pkg-name" placeholder="cth: Ujian IPA Kelas 6, Try Out Matematika…" />
+    </div>
+    <div class="field-group">
+      <label>Deskripsi (opsional)</label>
+      <input type="text" id="new-pkg-desc" placeholder="Keterangan singkat paket ini…" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="createPackage()">&#10010; Buat Paket</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SHARE MODAL ═══ -->
+<div class="share-modal-overlay" id="share-modal">
+  <div class="share-modal-box">
+    <div class="share-modal-inner">
+      <button class="share-modal-close" onclick="closeShareModal()" title="Tutup">&#10005;</button>
+      <div class="share-pkg-name" id="share-pkg-label">–</div>
+      <h3>&#128241; Bagikan Paket Soal</h3>
+      <p>Scan QR Code berikut dari HP, atau salin link-nya. Soal akan otomatis masuk ke HP!</p>
+      <div class="share-size-warn" id="share-size-warn">&#9888;&#65039; Data soal cukup besar. QR Code mungkin sulit di-scan. Gunakan tombol <strong>Salin Link</strong> dan kirim via WhatsApp.</div>
+      <div class="qr-wrap" id="qr-wrap"><div id="qr-canvas"></div></div>
+      <div class="share-link-box" id="share-link-box">–</div>
+      <div class="share-actions">
+        <button class="btn btn-primary" onclick="copyShareLink()">&#128203; Salin Link</button>
+        <button class="btn btn-green" onclick="shareViaWhatsApp()">&#128232; Kirim WhatsApp</button>
+        <button class="btn btn-ghost" onclick="closeShareModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HOME PAGE ═══ -->
+<div id="page-home" class="page active">
+  <div class="wrap">
+    <h1 class="page-title">&#128196; Paket Soal Kuis</h1>
+    <p class="page-sub">Setiap paket berisi kumpulan soal tersendiri. Buat paket berbeda untuk setiap mata pelajaran atau ujian.</p>
+    <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">&#128228; Export Backup</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">&#128229; Import Backup</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
+    </div>
+    <div class="pkg-grid" id="pkg-grid">
+      <div class="pkg-add-card" onclick="openModal()">
+        <div class="add-icon">&#10133;</div>
+        <span>Buat Paket Soal Baru</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EDITOR PAGE ═══ -->
+<div id="page-editor" class="page">
+  <div class="wrap">
+    <!-- Package header bar -->
+    <div class="pkg-header-bar">
+      <div>
+        <div class="pkg-name-big" id="editor-pkg-name">–</div>
+        <div class="pkg-stats">Total: <strong id="editor-q-count">0</strong> soal</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-yellow btn-sm" onclick="showPasteTab()">&#128196; Paste Soal</button>
+        <button class="btn btn-green" onclick="startCurrentQuiz()">&#9654;&#65039; Main Kuis</button>
+      </div>
+    </div>
+
+    <!-- Add question form -->
+    <div class="card" id="add-form-card">
+      <h3>&#10133; Tambah Pertanyaan</h3>
+      <div class="type-row">
+        <button class="type-pill selected" id="type-mc" onclick="setType('mc')">&#128280; Pilihan Ganda</button>
+        <button class="type-pill" id="type-essay" onclick="setType('essay')">&#128221; Esai / Isian</button>
+      </div>
+      <div class="field-group">
+        <label>Kategori (opsional)</label>
+        <div class="category-wrap">
+          <input type="text" id="inp-category" placeholder="cth: Bab 1, Materi A…" autocomplete="off" oninput="showCatSugg(this.value,'cat-sug')" onblur="hideCatSugg('cat-sug')" />
+          <div class="cat-suggestions" id="cat-sug"></div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Pertanyaan</label>
+        <textarea id="inp-question" placeholder="Tulis pertanyaan di sini…" rows="3"></textarea>
+      </div>
+      <div class="field-group">
+        <label>&#128247; Gambar Soal (opsional)</label>
+        <div class="img-upload-area" id="img-upload-area" onclick="triggerImgUpload()">
+          <div id="img-preview-wrap">
+            <div class="img-upload-placeholder">
+              <span class="up-icon">&#128247;</span>
+              <span>Klik untuk pilih gambar &bull; maks. 2 MB</span>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="img-file-input" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
+        <button class="btn btn-danger btn-sm" onclick="removeImage()" id="btn-remove-img" style="display:none;margin-top:8px">&#10005; Hapus Gambar</button>
+      </div>
+      <div id="mc-section">
+        <label style="margin-bottom:10px">Pilihan Jawaban</label>
+        <div class="options-grid">
+          <div class="option-item"><div class="opt-circle" style="border-color:var(--accent);color:var(--accent2)">A</div><input type="text" id="opt-a" placeholder="Pilihan A" /></div>
+          <div class="option-item"><div class="opt-circle">B</div><input type="text" id="opt-b" placeholder="Pilihan B" /></div>
+          <div class="option-item"><div class="opt-circle">C</div><input type="text" id="opt-c" placeholder="Pilihan C (opsional)" /></div>
+          <div class="option-item"><div class="opt-circle">D</div><input type="text" id="opt-d" placeholder="Pilihan D (opsional)" /></div>
+        </div>
+        <div class="field-group">
+          <label>Jawaban Benar</label>
+          <select id="correct-ans"><option value="a">A</option><option value="b">B</option><option value="c">C</option><option value="d">D</option></select>
+        </div>
+      </div>
+      <div id="essay-section" style="display:none">
+        <div class="field-group"><label>Kunci Jawaban</label><input type="text" id="essay-answer" placeholder="Kunci jawaban…" /></div>
+      </div>
+      <div class="explanation-field field-group">
+        <label>&#128218; Penjelasan Jawaban (opsional)</label>
+        <textarea id="inp-explanation" placeholder="Penjelasan muncul setelah peserta menjawab…" rows="2"></textarea>
+      </div>
+      <div class="row-actions">
+        <button class="btn btn-primary" onclick="addQuestion()">&#10133; Tambah Soal</button>
+        <button class="btn btn-ghost" onclick="clearForm()">&#128465;&#65039; Bersihkan</button>
+      </div>
+    </div>
+
+    <!-- Paste card (hidden by default) -->
+    <div class="card" id="paste-form-card" style="display:none">
+      <h3>&#128196; Paste Soal Otomatis</h3>
+      <div class="format-hint">
+        Format yang didukung:<br>
+        <code>1. Pertanyaan?</code><br>
+        <code>A. Pilihan A &nbsp; B. Pilihan B &nbsp; C. Pilihan C &nbsp; D. Pilihan D</code><br>
+        <code>Jawaban: C</code><br>
+        &#128161; Pisahkan antar soal dengan baris kosong.
+      </div>
+      <div class="field-group"><label>Tempel Soal</label><textarea class="paste-area" id="paste-input" placeholder="Tempel soal-soal di sini…" rows="10"></textarea></div>
+      <div class="row-actions">
+        <button class="btn btn-yellow" onclick="parseSoal()">&#9889; Urai Otomatis</button>
+        <button class="btn btn-ghost" onclick="hidePasteTab()">&#10005; Tutup</button>
+      </div>
+      <div class="parse-preview" id="parse-preview">
+        <h4 id="parse-preview-title">&#9989; Hasil Penguraian</h4>
+        <div id="parsed-list"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+          <button class="btn btn-green" onclick="importParsed()">&#10011; Simpan ke Paket Ini</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelParse()">&#10005; Batal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Question list -->
+    <div class="empty-state" id="empty-state"><div class="icon">&#128203;</div><p>Paket ini belum ada soal. Tambahkan soal di atas!</p></div>
+    <div class="q-list" id="q-list"></div>
+  </div>
+</div>
+
+<!-- ═══ QUIZ PAGE ═══ -->
+<div id="page-quiz" class="page">
+  <div class="quiz-wrap">
+    <div class="quiz-header-row">
+      <div class="quiz-pkg-name" id="quiz-pkg-name">–</div>
+      <div class="quiz-score-label">Skor: <strong id="q-score">0</strong></div>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="quiz-progress" style="width:0%"></div></div>
+    <div class="quiz-meta"><span>Soal <strong id="q-current">1</strong> dari <strong id="q-total">0</strong></span></div>
+    <div class="quiz-question-card" id="quiz-card">
+      <div class="quiz-q-label" id="q-type-label">Pilihan Ganda</div>
+      <div class="quiz-q-text" id="quiz-q-text">–</div>
+    </div>
+    <div id="quiz-options-wrap"></div>
+    <div id="feedback-box" class="feedback-box">
+      <div class="fb-header"><div class="fb-icon" id="fb-icon">–</div><div id="fb-title">–</div></div>
+      <div class="fb-body"><div id="fb-detail"></div><div class="fb-explanation" id="fb-explanation" style="display:none"></div></div>
+    </div>
+    <div class="quiz-nav">
+      <button class="btn btn-ghost" id="btn-skip" onclick="skipQuestion()">&#9197; Lewati</button>
+      <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()" style="display:none">Selanjutnya &#8594;</button>
+      <button class="btn btn-green" id="btn-finish" onclick="showResult()" style="display:none">&#127937; Selesai</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESULT PAGE ═══ -->
+<div id="page-result" class="page">
+  <div class="result-wrap">
+    <div class="result-ring" id="result-ring"><div class="result-pct" id="result-pct">–</div></div>
+    <div class="result-title" id="result-title">Hasil Kuis</div>
+    <div class="result-sub" id="result-sub">–</div>
+    <div class="result-stats">
+      <div class="stat-card"><div class="stat-val" id="stat-correct" style="color:var(--green)">0</div><div class="stat-label">&#9989; Benar</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-wrong" style="color:var(--red)">0</div><div class="stat-label">&#10060; Salah</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-skip" style="color:var(--yellow)">0</div><div class="stat-label">&#9197; Dilewati</div></div>
+    </div>
+    <div class="result-actions">
+      <button class="btn btn-primary" onclick="restartQuiz()">&#128260; Ulangi</button>
+      <button class="btn btn-ghost" onclick="backToEditor()">&#9999;&#65039; Edit Soal</button>
+      <button class="btn btn-ghost" onclick="goHome()">&#127968; Beranda</button>
+    </div>
+    <div class="review-list" id="review-list"></div>
+  </div>
+</div>
+
+<div class="start-bar" id="start-bar">
+  <div class="start-bar-info">Paket: <strong id="bar-pkg-name">–</strong> &nbsp;|&nbsp; <strong id="bar-count">0</strong> soal</div>
+  <button class="btn btn-green" onclick="startCurrentQuiz()">&#9654;&#65039; Mulai Kuis</button>
+</div>
+
+<script>
+/* ══ STATE ══ */
+var packages = JSON.parse(localStorage.getItem('quizPackages') || '[]');
+var currentPkgId = null;
+var currentType = 'mc';
+var quizQuestions = [], currentQIdx = 0;
+var score = 0, correctCount = 0, wrongCount = 0, skipCount = 0;
+var answers = [], answered = false;
+var parsedItems = [];
+
+function save() { localStorage.setItem('quizPackages', JSON.stringify(packages)); }
+function getPkg() { return packages.find(function(p){ return p.id===currentPkgId; }); }
+
+/* ══ MODAL ══ */
+function openModal() {
+  document.getElementById('new-pkg-name').value='';
+  document.getElementById('new-pkg-desc').value='';
+  document.getElementById('modal-new-pkg').classList.add('open');
+  setTimeout(function(){ document.getElementById('new-pkg-name').focus(); }, 100);
+}
+function closeModal() { document.getElementById('modal-new-pkg').classList.remove('open'); }
+document.getElementById('modal-new-pkg').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+
+function createPackage() {
+  var name = document.getElementById('new-pkg-name').value.trim();
+  if (!name) return alert('Nama paket tidak boleh kosong!');
+  var desc = document.getElementById('new-pkg-desc').value.trim();
+  var pkg = { id: Date.now(), name: name, desc: desc, questions: [] };
+  packages.push(pkg); save(); closeModal(); renderHome();
+  openPackage(pkg.id);
+}
+
+/* ══ HOME ══ */
+function renderHome() {
+  var grid = document.getElementById('pkg-grid');
+  grid.innerHTML = '';
+  packages.forEach(function(pkg){
+    var card = document.createElement('div');
+    card.className = 'pkg-card';
+    var icons = ['&#128218;','&#9998;&#65039;','&#127891;','&#128202;','&#128196;','&#127775;'];
+    var icon = icons[Math.abs(pkg.id) % icons.length];
+    card.innerHTML =
+      '<div class="pkg-card-icon">'+icon+'</div>'+
+      '<div class="pkg-card-name">'+pkg.name+'</div>'+
+      (pkg.desc ? '<div class="pkg-card-desc">'+pkg.desc+'</div>' : '')+
+      '<div class="pkg-card-meta">'+
+        '<span class="pkg-meta-chip">&#128203; '+pkg.questions.length+' soal</span>'+
+      '</div>'+
+      '<div class="pkg-card-actions">'+
+        '<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPackage('+pkg.id+')">&#9999;&#65039; Edit</button>'+
+        '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();openAndPlay('+pkg.id+')">&#9654;&#65039; Main</button>'+
+        '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openShareModal('+pkg.id+')" title="Bagikan ke HP">&#128241; Share</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePackage('+pkg.id+')">&#128465;</button>'+
+      '</div>';
+    grid.appendChild(card);
+  });
+  var addBtn = document.createElement('div');
+  addBtn.className = 'pkg-add-card';
+  addBtn.innerHTML = '<div class="add-icon">&#10133;</div><span>Buat Paket Soal Baru</span>';
+  addBtn.onclick = openModal;
+  grid.appendChild(addBtn);
+}
+
+function deletePackage(id) {
+  if (!confirm('Hapus paket ini beserta semua soalnya?')) return;
+  packages = packages.filter(function(p){ return p.id!==id; });
+  save(); renderHome();
+}
+
+/* ══ OPEN PACKAGE ══ */
+function openPackage(id) {
+  currentPkgId = id;
+  var pkg = getPkg();
+  showPage('editor');
+  document.getElementById('editor-pkg-name').textContent = pkg.name;
+  document.getElementById('bc-pkg-name').textContent = pkg.name;
+  document.getElementById('breadcrumb').style.display = 'flex';
+  renderList();
+}
+function openAndPlay(id) { openPackage(id); startCurrentQuiz(); }
+
+function goHome() {
+  showPage('home');
+  document.getElementById('breadcrumb').style.display = 'none';
+  document.getElementById('start-bar').classList.remove('visible');
+  currentPkgId = null;
+  renderHome();
+}
+function backToEditor() {
+  if (currentPkgId) openPackage(currentPkgId);
+  else goHome();
+}
+
+/* ══ SHOW PAGE ══ */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('page-'+name).classList.add('active');
+}
+
+/* ══ TYPE ══ */
+function setType(t) {
+  currentType = t;
+  document.getElementById('type-mc').classList.toggle('selected', t==='mc');
+  document.getElementById('type-essay').classList.toggle('selected', t==='essay');
+  document.getElementById('mc-section').style.display = t==='mc' ? '' : 'none';
+  document.getElementById('essay-section').style.display = t==='essay' ? '' : 'none';
+}
+
+/* ══ CATEGORY SUGGEST ══ */
+function getCats() {
+  var pkg = getPkg(); if (!pkg) return [];
+  var c={}; pkg.questions.forEach(function(q){ if(q.category) c[q.category]=true; }); return Object.keys(c);
+}
+function showCatSugg(val, boxId) {
+  var box=document.getElementById(boxId);
+  var cats=getCats().filter(function(c){ return c.toLowerCase().includes(val.toLowerCase()) && c!==val; });
+  if (!val||cats.length===0){ box.style.display='none'; return; }
+  box.innerHTML=cats.map(function(c){ return '<div class="cat-sug-item" onmousedown="pickCat(\''+c.replace(/'/g,"\\'")+"','" +boxId+"'\")>"+c+"</div>"; }).join('');
+  box.style.display='block';
+}
+function hideCatSugg(boxId){ setTimeout(function(){ document.getElementById(boxId).style.display='none'; },150); }
+function pickCat(c,boxId){
+  if(boxId==='cat-sug') document.getElementById('inp-category').value=c;
+  document.getElementById(boxId).style.display='none';
+}
+
+/* ══ ADD QUESTION ══ */
+function addQuestion() {
+  var pkg = getPkg(); if (!pkg) return;
+  var q = document.getElementById('inp-question').value.trim();
+  if (!q) return alert('Pertanyaan tidak boleh kosong!');
+  var cat = document.getElementById('inp-category').value.trim();
+  var exp = document.getElementById('inp-explanation').value.trim();
+  var obj = { type:currentType, question:q, category:cat, explanation:exp, id:Date.now(), image:currentImageData };
+  if (currentType==='mc') {
+    var a=document.getElementById('opt-a').value.trim(), b=document.getElementById('opt-b').value.trim();
+    var c2=document.getElementById('opt-c').value.trim(), d=document.getElementById('opt-d').value.trim();
+    if (!a||!b) return alert('Minimal isi Pilihan A dan B!');
+    obj.options={a:a,b:b,c:c2,d:d}; obj.correct=document.getElementById('correct-ans').value;
+  } else {
+    var ans=document.getElementById('essay-answer').value.trim();
+    if (!ans) return alert('Kunci jawaban tidak boleh kosong!');
+    obj.answer=ans;
+  }
+  pkg.questions.push(obj); save(); renderList(); clearForm();
+}
+function clearForm() {
+  ['inp-question','inp-category','inp-explanation','opt-a','opt-b','opt-c','opt-d','essay-answer'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('correct-ans').value='a';
+  removeImage();
+}
+function deleteQuestion(id) {
+  var pkg=getPkg(); if(!pkg) return;
+  pkg.questions=pkg.questions.filter(function(q){ return q.id!==id; });
+  save(); renderList();
+}
+
+/* ══ RENDER LIST ══ */
+function renderList() {
+  var pkg = getPkg(); if (!pkg) return;
+  var list = document.getElementById('q-list');
+  var empty = document.getElementById('empty-state');
+  var bar = document.getElementById('start-bar');
+  var qs = pkg.questions;
+
+  document.getElementById('editor-q-count').textContent = qs.length;
+  document.getElementById('bar-count').textContent = qs.length;
+  document.getElementById('bar-pkg-name').textContent = pkg.name;
+  bar.classList.toggle('visible', qs.length > 0);
+
+  list.innerHTML = '';
+  empty.style.display = qs.length===0 ? '' : 'none';
+
+  qs.forEach(function(q, i) {
+    var div = document.createElement('div'); div.className = 'q-item';
+
+    var ansHtml = '';
+    if (q.type==='mc') {
+      Object.entries(q.options).filter(function(e){ return e[1]; }).forEach(function(e){
+        ansHtml += '<span class="q-ans-chip '+(e[0]===q.correct?'correct':'')+'">'+ e[0].toUpperCase()+'. '+e[1]+'</span>';
+      });
+    } else {
+      ansHtml = '<span class="q-ans-chip correct">&#128221; '+q.answer+'</span>';
+    }
+
+    div.innerHTML =
+      '<div class="q-item-header">'+
+        '<div class="q-num">'+(i+1)+'</div>'+
+        '<div class="q-header-info">'+
+          '<span class="q-type-badge">'+(q.type==='mc'?'&#128280; Pilihan Ganda':'&#128221; Esai')+'</span>'+
+          (q.category ? '<span class="q-cat-badge">&#127991;&#65039; '+q.category+'</span>' : '')+
+        '</div>'+
+        '<div class="q-item-actions">'+
+          '<button class="btn btn-danger btn-sm" onclick="deleteQuestion('+q.id+')">&#128465; Hapus</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="q-item-body">'+
+        (q.image ? '<img src="'+q.image+'" class="q-img" loading="lazy">' : '')+
+        '<div class="q-text">'+q.question+'</div>'+
+        '<div class="q-answers">'+ansHtml+'</div>'+
+        (q.explanation ? '<div style="margin-top:8px;font-size:.75rem;color:var(--muted);font-style:italic">&#128218; '+q.explanation+'</div>' : '')+
+      '</div>';
+
+    list.appendChild(div);
+  });
+}
+
+/* ══ PASTE ══ */
+function showPasteTab() {
+  document.getElementById('paste-form-card').style.display='';
+  document.getElementById('paste-form-card').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function hidePasteTab() {
+  document.getElementById('paste-form-card').style.display='none';
+  cancelParse();
+}
+
+function parseSoal() {
+  var raw = document.getElementById('paste-input').value;
+  if (!raw.trim()) return alert('Tempelkan soal terlebih dahulu!');
+  parsedItems = [];
+  var blocks = raw.split(/\n{2,}/);
+  blocks.forEach(function(block) {
+    block = block.trim(); if (!block) return;
+    var lines = block.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; });
+    if (lines.length < 2) return;
+    var qLine='', optLines=[], keyLine='', qLineIdx=-1;
+    for (var i=0;i<lines.length;i++) {
+      if (/^\d+[\.\)]\s/.test(lines[i])||(i===0&&!/^[A-Da-d][\.\)]/i.test(lines[i]))) {
+        qLine=lines[i].replace(/^\d+[\.\)]\s*/,'').trim(); qLineIdx=i; break;
+      }
+    }
+    if (!qLine){ qLine=lines[0]; qLineIdx=0; }
+    for (var j=qLineIdx+1;j<lines.length;j++) {
+      var l=lines[j];
+      if (/^(jawaban|kunci\s*jawaban|kunci|answer|ans)\s*[:=]/i.test(l)){ keyLine=l; continue; }
+      if (/^[\(\s]*[A-Da-d][\.\)\s]/i.test(l)){ optLines.push(l); continue; }
+      var inlineMatch=l.match(/[A-Da-d][\.\)]\s*[^\s]/gi);
+      if (inlineMatch&&inlineMatch.length>=2) {
+        l.split(/(?=[A-Da-d][\.\)])/i).filter(function(s){ return s.trim(); }).forEach(function(s){ optLines.push(s.trim()); });
+      }
+    }
+    var opts={a:'',b:'',c:'',d:''};
+    optLines.forEach(function(ol){ var m=ol.match(/^[\(\s]*([A-Da-d])[\.\)]\s*(.*)/i); if(m) opts[m[1].toLowerCase()]=m[2].trim(); });
+    var correctKey='';
+    if (keyLine){ var km=keyLine.match(/[:=]\s*([A-Da-d])/i); if(km) correctKey=km[1].toLowerCase(); }
+    var hasOpts=opts.a&&opts.b;
+    if (!qLine) return;
+    parsedItems.push({ question:qLine, options:opts, correct:correctKey||'a', hasOpts:hasOpts });
+  });
+  if (parsedItems.length===0) return alert('Tidak ada soal yang berhasil diurai.\n\nPastikan format sesuai dan pisahkan soal dengan baris kosong.');
+  renderParsedPreview();
+}
+
+function renderParsedPreview() {
+  var preview=document.getElementById('parse-preview'), plist=document.getElementById('parsed-list'), title=document.getElementById('parse-preview-title');
+  preview.style.display='block';
+  title.innerHTML='&#9989; Berhasil mengurai <span class="parse-count-badge">'+parsedItems.length+' soal</span>';
+  plist.innerHTML='';
+  parsedItems.forEach(function(item,idx){
+    var div=document.createElement('div'); div.className='parsed-item'; div.style.marginLeft='16px';
+    var optsHtml='';
+    ['a','b','c','d'].forEach(function(k){
+      if(!item.options[k]) return;
+      optsHtml+='<div class="parsed-opt '+(item.correct===k?'is-correct':'')+'" id="popt-'+idx+'-'+k+'"><div class="po-key">'+k.toUpperCase()+'</div><span>'+item.options[k]+'</span></div>';
+    });
+    var selHtml='<select class="pi-correct-select" id="psel-'+idx+'" onchange="setParsedCorrect('+idx+',this.value)">';
+    ['a','b','c','d'].forEach(function(k){ if(!item.options[k]) return; selHtml+='<option value="'+k+'" '+(item.correct===k?'selected':'')+'>'+k.toUpperCase()+'. '+item.options[k].substring(0,30)+'</option>'; });
+    selHtml+='</select>';
+    div.innerHTML=
+      '<div class="pi-num">'+(idx+1)+'</div>'+
+      '<button class="pi-del" onclick="removeParsedItem('+idx+')">&#10005;</button>'+
+      '<div class="pi-q">'+item.question+'</div>'+
+      (item.hasOpts?'<div class="parsed-opts">'+optsHtml+'</div>':'<div style="color:var(--yellow);font-size:.8rem;margin-bottom:10px">&#9888;&#65039; Pilihan tidak terdeteksi, disimpan sebagai Esai</div>')+
+      (item.hasOpts?'<div class="pi-correct-row"><label>Jawaban Benar:</label>'+selHtml+'</div>':'<div class="field-group" style="margin-bottom:10px"><label>Kunci Jawaban</label><input type="text" id="pessay-'+idx+'" value="'+item.correct+'" style="padding:8px 12px;border-radius:8px;font-size:.88rem"></div>');
+    plist.appendChild(div);
+  });
+  preview.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function setParsedCorrect(idx,key) {
+  parsedItems[idx].correct=key;
+  ['a','b','c','d'].forEach(function(k){ var el=document.getElementById('popt-'+idx+'-'+k); if(el) el.className='parsed-opt '+(k===key?'is-correct':''); });
+}
+function removeParsedItem(idx){ parsedItems.splice(idx,1); if(parsedItems.length===0){document.getElementById('parse-preview').style.display='none';return;} renderParsedPreview(); }
+
+function importParsed() {
+  var pkg=getPkg(); if(!pkg||parsedItems.length===0) return;
+  parsedItems.forEach(function(item,idx){
+    var obj={ id:Date.now()+idx*7, category:'', explanation:'' };
+    if (item.hasOpts) {
+      obj.type='mc'; obj.question=item.question; obj.options=item.options;
+      obj.correct=(document.getElementById('psel-'+idx)||{}).value||item.correct;
+    } else {
+      obj.type='essay'; obj.question=item.question;
+      obj.answer=(document.getElementById('pessay-'+idx)||{}).value||item.correct||'';
+    }
+    pkg.questions.push(obj);
+  });
+  save(); renderList();
+  parsedItems=[]; document.getElementById('parse-preview').style.display='none';
+  document.getElementById('paste-input').value='';
+  hidePasteTab();
+}
+function cancelParse(){ parsedItems=[]; document.getElementById('parse-preview').style.display='none'; }
+
+/* ══ QUIZ ══ */
+function startCurrentQuiz() {
+  var pkg=getPkg(); if(!pkg) return;
+  if (pkg.questions.length===0) return alert('Tambahkan soal terlebih dahulu!');
+  quizQuestions=pkg.questions.slice().sort(function(){ return Math.random()-.5; });
+  currentQIdx=0; score=0; correctCount=0; wrongCount=0; skipCount=0; answers=[];
+  showPage('quiz');
+  document.getElementById('quiz-pkg-name').textContent='&#128196; '+pkg.name;
+  document.getElementById('q-total').textContent=quizQuestions.length;
+  renderQ();
+}
+
+function renderQ() {
+  answered=false;
+  var q=quizQuestions[currentQIdx];
+  var pct=Math.round((currentQIdx/quizQuestions.length)*100);
+  document.getElementById('quiz-progress').style.width=pct+'%';
+  document.getElementById('q-current').textContent=currentQIdx+1;
+  document.getElementById('q-score').textContent=score;
+  document.getElementById('quiz-q-text').textContent=q.question;
+  document.getElementById('q-type-label').textContent=q.type==='mc'?'&#128280; Pilihan Ganda':'&#128221; Esai';
+  var qCard=document.getElementById('quiz-card');
+  var existQImg=qCard.querySelector('.quiz-q-img'); if(existQImg) existQImg.remove();
+  if(q.image){ var qImgEl=document.createElement('img'); qImgEl.src=q.image; qImgEl.className='quiz-q-img'; qImgEl.loading='lazy'; qCard.appendChild(qImgEl); }
+  var fb=document.getElementById('feedback-box'); fb.style.display='none'; fb.className='feedback-box';
+  var isLast=currentQIdx===quizQuestions.length-1;
+  document.getElementById('btn-next').style.display='none';
+  document.getElementById('btn-finish').style.display='none';
+  document.getElementById('btn-skip').style.display='';
+  var wrap=document.getElementById('quiz-options-wrap'); wrap.innerHTML='';
+  if (q.type==='mc') {
+    var entries=Object.entries(q.options).filter(function(e){ return e[1]; });
+    for(var si=entries.length-1;si>0;si--){ var sj=Math.floor(Math.random()*(si+1)); var tmp=entries[si]; entries[si]=entries[sj]; entries[sj]=tmp; }
+    var displayLabels=['A','B','C','D'], correctDisplayLabel='';
+    entries.forEach(function(e,i){ if(e[0]===q.correct) correctDisplayLabel=displayLabels[i]; });
+    wrap._correctDisplayLabel=correctDisplayLabel;
+    wrap._correctOriginalVal=q.options[q.correct];
+    entries.forEach(function(e,i){
+      var origKey=e[0], val=e[1], displayKey=displayLabels[i];
+      var btn=document.createElement('button'); btn.className='quiz-option'; btn.id='qopt-disp-'+displayKey;
+      btn.innerHTML='<span class="opt-cq">'+displayKey+'</span> '+val;
+      btn.onclick=(function(dk,isCorrectOpt,exp,last){ return function(){ selectShuffled(dk,isCorrectOpt,exp,last); }; })(displayKey,origKey===q.correct,q.explanation||'',isLast);
+      wrap.appendChild(btn);
+    });
+  } else {
+    var inp=document.createElement('textarea'); inp.className='essay-input'; inp.placeholder='Tulis jawaban kamu di sini…'; inp.id='essay-inp'; wrap.appendChild(inp);
+    var sb=document.createElement('button'); sb.className='btn btn-primary'; sb.style.marginTop='14px'; sb.textContent='Jawab';
+    sb.onclick=(function(ans,exp,last){ return function(){ submitEssay(ans,exp,last); }; })(q.answer,q.explanation||'',isLast);
+    wrap.appendChild(sb);
+  }
+  var card=document.getElementById('quiz-card'); card.style.animation='none'; void card.offsetWidth; card.style.animation='slideUpQ .4s ease';
+}
+
+function showFeedback(isCorrect,detail,explanation,mode) {
+  var fb=document.getElementById('feedback-box');
+  var icon=document.getElementById('fb-icon'), title=document.getElementById('fb-title');
+  var det=document.getElementById('fb-detail'), exp=document.getElementById('fb-explanation');
+  if(mode==='essay'){ fb.className='feedback-box essay-show'; icon.textContent=isCorrect?'&#127881;':'&#128218;'; title.textContent=isCorrect?'Jawaban Tepat! +10 Poin':'Lihat Kunci Jawaban'; }
+  else if(isCorrect){ fb.className='feedback-box correct'; icon.textContent='&#127881;'; title.textContent='Jawaban Benar! +10 Poin'; }
+  else{ fb.className='feedback-box wrong'; icon.textContent='&#10060;'; title.textContent='Jawaban Salah'; }
+  det.innerHTML=detail;
+  if(explanation){ exp.innerHTML='<strong>Penjelasan:</strong> '+explanation; exp.style.display='block'; } else{ exp.style.display='none'; }
+  fb.style.display='block';
+}
+
+function selectShuffled(chosenDisplayKey,isCorrectOpt,explanation,isLast) {
+  if(answered) return; answered=true;
+  document.querySelectorAll('.quiz-option').forEach(function(b){ b.disabled=true; });
+  var wrap=document.getElementById('quiz-options-wrap');
+  var correctDisplayLabel=wrap._correctDisplayLabel, correctOriginalVal=wrap._correctOriginalVal;
+  var chosenBtn=document.getElementById('qopt-disp-'+chosenDisplayKey);
+  if(chosenBtn) chosenBtn.classList.add(isCorrectOpt?'correct-ans':'wrong-ans');
+  if(!isCorrectOpt){ var correctBtn=document.getElementById('qopt-disp-'+correctDisplayLabel); if(correctBtn) correctBtn.classList.add('correct-ans'); }
+  if(isCorrectOpt){ score+=10; correctCount++; } else wrongCount++;
+  var chosenText=chosenBtn?chosenBtn.textContent.replace(/^[A-D]\s*/,'').trim():'';
+  var detail=isCorrectOpt
+    ? 'Pilihan <strong>'+chosenDisplayKey+'</strong> adalah jawaban yang tepat!'
+    : 'Kamu memilih <strong>'+chosenDisplayKey+'. '+chosenText+'</strong><br>Jawaban benar: <strong>'+correctDisplayLabel+'. '+correctOriginalVal+'</strong>';
+  showFeedback(isCorrectOpt,detail,explanation,'mc');
+  document.getElementById('q-score').textContent=score;
+  document.getElementById('btn-skip').style.display='none';
+  answers.push({ q:quizQuestions[currentQIdx], chosen:chosenDisplayKey+'. '+chosenText, correct:correctDisplayLabel+'. '+correctOriginalVal, isCorrect:isCorrectOpt, skipped:false, type:'mc' });
+  if(isLast) document.getElementById('btn-finish').style.display=''; else document.getElementById('btn-next').style.display='';
+}
+
+function submitEssay(correctAnswer,explanation,isLast) {
+  if(answered) return; answered=true;
+  var inp=document.getElementById('essay-inp'), userAns=inp.value.trim();
+  if(!userAns) return alert('Jawaban tidak boleh kosong!');
+  inp.disabled=true;
+  var isCorrect=userAns.toLowerCase()===correctAnswer.toLowerCase();
+  if(isCorrect){ score+=10; correctCount++; } else wrongCount++;
+  var detail=isCorrect?'Jawaban kamu <strong>"'+userAns+'"</strong> sudah tepat!':'Jawaban kamu: <strong>"'+userAns+'"</strong><br>Kunci: <strong>"'+correctAnswer+'"</strong>';
+  showFeedback(isCorrect,detail,explanation,'essay');
+  document.getElementById('q-score').textContent=score;
+  document.getElementById('btn-skip').style.display='none';
+  answers.push({ q:quizQuestions[currentQIdx], chosen:userAns, correct:correctAnswer, isCorrect:isCorrect, skipped:false, type:'essay' });
+  if(isLast) document.getElementById('btn-finish').style.display=''; else document.getElementById('btn-next').style.display='';
+}
+
+function skipQuestion(){ skipCount++; answers.push({ q:quizQuestions[currentQIdx], skipped:true }); nextQuestion(); }
+function nextQuestion(){ currentQIdx++; if(currentQIdx>=quizQuestions.length){ showResult(); return; } renderQ(); }
+
+function showResult() {
+  var total=quizQuestions.length, pct=Math.round((correctCount/total)*100);
+  showPage('result');
+  document.getElementById('result-ring').style.setProperty('--pct',pct);
+  document.getElementById('result-pct').textContent=pct+'%';
+  document.getElementById('stat-correct').textContent=correctCount;
+  document.getElementById('stat-wrong').textContent=wrongCount;
+  document.getElementById('stat-skip').textContent=skipCount;
+  var title, sub;
+  if(pct===100){ title='&#127942; Sempurna!'; sub='Semua soal dijawab benar!'; launchConfetti(); }
+  else if(pct>=80){ title='&#127775; Sangat Bagus!'; sub='Pencapaian yang luar biasa!'; launchConfetti(); }
+  else if(pct>=60){ title='&#128077; Bagus!'; sub='Hasil cukup baik, terus belajar!'; }
+  else if(pct>=40){ title='&#128218; Perlu Belajar'; sub='Jangan menyerah, coba lagi!'; }
+  else{ title='&#128170; Coba Lagi!'; sub='Semangat! Pasti bisa lebih baik!'; }
+  document.getElementById('result-title').innerHTML=title;
+  document.getElementById('result-sub').textContent=sub;
+  var rev=document.getElementById('review-list');
+  rev.innerHTML='<h3 style="margin-bottom:14px;font-size:1rem;color:var(--muted);">&#128203; Tinjauan Jawaban</h3>';
+  answers.forEach(function(a,i){
+    var div=document.createElement('div');
+    if(a.skipped){
+      div.className='review-item';
+      div.innerHTML='<span class="review-badge" style="background:rgba(251,191,36,.15);color:var(--yellow)">&#9197; Dilewati</span><div class="review-q">Soal '+(i+1)+': '+a.q.question+'</div>';
+    } else {
+      div.className='review-item '+(a.isCorrect?'correct-item':'wrong-item');
+      var ansText='Kamu: <span>'+a.chosen+'</span> | Benar: <span>'+a.correct+'</span>';
+      div.innerHTML='<span class="review-badge '+(a.isCorrect?'c':'w')+'">'+(a.isCorrect?'&#9989; Benar':'&#10060; Salah')+'</span><div class="review-q">Soal '+(i+1)+': '+a.q.question+'</div><div class="review-ans">'+ansText+'</div>'+(a.q.explanation?'<div class="review-exp">&#128218; '+a.q.explanation+'</div>':'');
+    }
+    rev.appendChild(div);
+  });
+}
+
+function restartQuiz(){ startCurrentQuiz(); }
+
+function launchConfetti() {
+  var canvas=document.getElementById('confetti-canvas'), ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  var particles=[], colors=['#7c5cfc','#22d3a0','#fbbf24','#f87171','#a78bfa','#34d399'];
+  for(var i=0;i<160;i++) particles.push({ x:Math.random()*canvas.width, y:Math.random()*-canvas.height, w:Math.random()*10+5, h:Math.random()*6+3, color:colors[Math.floor(Math.random()*colors.length)], rot:Math.random()*360, rotSpeed:(Math.random()-.5)*5, speedY:Math.random()*4+2, speedX:(Math.random()-.5)*2, opacity:1 });
+  var frame=0;
+  function draw(){ ctx.clearRect(0,0,canvas.width,canvas.height); particles.forEach(function(p){ p.y+=p.speedY; p.x+=p.speedX; p.rot+=p.rotSpeed; if(frame>120) p.opacity-=.012; ctx.save(); ctx.globalAlpha=Math.max(0,p.opacity); ctx.translate(p.x+p.w/2,p.y+p.h/2); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore(); }); frame++; if(frame<220) requestAnimationFrame(draw); else ctx.clearRect(0,0,canvas.width,canvas.height); }
+  draw();
+}
+
+/* ══ SHARE VIA QR CODE / LINK ══ */
+function openShareModal(pkgId) {
+  var pkg = packages.find(function(p){ return p.id===pkgId; });
+  if (!pkg) return;
+  document.getElementById('share-pkg-label').textContent = pkg.name;
+  // Strip image data dari soal untuk hemat ukuran URL
+  var lite = JSON.parse(JSON.stringify(pkg));
+  lite.questions = lite.questions.map(function(q){
+    var qq = Object.assign({}, q);
+    if (qq.image && qq.image.length > 200) qq.image = null; // hapus gambar besar
+    return qq;
+  });
+  var json = JSON.stringify([lite]);
+  var encoded = btoa(unescape(encodeURIComponent(json)));
+  var url = 'https://dragonshinryuji.github.io/quizmaker-pro/#share=' + encoded;
+  document.getElementById('share-link-box').textContent = url;
+  // warn jika terlalu besar
+  var warn = document.getElementById('share-size-warn');
+  warn.style.display = encoded.length > 2000 ? '' : 'none';
+  // Generate QR
+  var qrEl = document.getElementById('qr-canvas');
+  qrEl.innerHTML = '';
+  var qrSize = Math.min(240, window.innerWidth - 80);
+  try {
+    new QRCode(qrEl, { text: url, width: qrSize, height: qrSize, colorDark:'#1a1d35', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  } catch(e) {
+    qrEl.innerHTML = '<p style="color:var(--red);font-size:.8rem">QR terlalu besar. Gunakan Salin Link.</p>';
+  }
+  document.getElementById('share-modal').classList.add('open');
+}
+function closeShareModal() { document.getElementById('share-modal').classList.remove('open'); }
+document.getElementById('share-modal').addEventListener('click', function(e){ if(e.target===this) closeShareModal(); });
+function copyShareLink() {
+  var link = document.getElementById('share-link-box').textContent;
+  navigator.clipboard.writeText(link).then(function(){
+    alert('Link berhasil disalin! \nKirim ke HP via WhatsApp / Telegram lalu buka link-nya.');
+  }).catch(function(){ prompt('Salin link ini:', link); });
+}
+function shareViaWhatsApp() {
+  var link = document.getElementById('share-link-box').textContent;
+  var text = encodeURIComponent('Hai! Ini link paket kuis untuk dimainkan di HP:\n' + link);
+  window.open('https://wa.me/?text=' + text, '_blank');
+}
+
+/* ══ AUTO-IMPORT FROM URL HASH ══ */
+function checkUrlShare() {
+  var hash = window.location.hash;
+  if (!hash || hash.indexOf('#share=') !== 0) return;
+  var encoded = hash.replace('#share=', '');
+  if (!encoded) return;
+  try {
+    var json = decodeURIComponent(escape(atob(encoded)));
+    var imported = JSON.parse(json);
+    if (!Array.isArray(imported) || imported.length === 0) throw new Error('invalid');
+    var pkg = imported[0];
+    var qCount = pkg.questions ? pkg.questions.length : 0;
+    showImportBanner(pkg.name, qCount, imported);
+  } catch(e) {
+    console.warn('Share URL invalid:', e);
+  }
+  // Bersihkan hash dari URL
+  history.replaceState(null, '', window.location.pathname);
+}
+function showImportBanner(name, qCount, data) {
+  var banner = document.createElement('div');
+  banner.id = 'import-banner';
+  banner.className = 'import-banner';
+  banner.innerHTML =
+    '<div style="font-size:2rem">&#128228;</div>'+
+    '<div class="import-banner-text">'+
+      '<strong>Paket Soal Diterima: &#8220;'+name+'&#8221;</strong>'+
+      '<span>'+qCount+' soal siap diimport ke perangkat ini</span>'+
+    '</div>'+
+    '<div class="import-banner-actions">'+
+      '<button class="btn btn-green" onclick="doImportBanner()">&#10003; Import Sekarang</button>'+
+      '<button class="btn btn-ghost btn-sm" onclick="this.closest(\'.import-banner\').remove()">Abaikan</button>'+
+    '</div>';
+  banner._data = data;
+  document.body.prepend(banner);
+  window._pendingImport = data;
+}
+function doImportBanner() {
+  var data = window._pendingImport;
+  if (!data) return;
+  packages = packages.concat(data);
+  save(); renderHome();
+  var b = document.getElementById('import-banner');
+  if (b) b.remove();
+  window._pendingImport = null;
+  alert('&#10003; Paket soal berhasil diimport! Sekarang bisa dimainkan di HP ini.');
+}
+
+/* ══ EXPORT / IMPORT ══ */
+function exportData() {
+  if (packages.length === 0) return alert('Belum ada paket soal untuk diexport.');
+  var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(packages));
+  var dlAnchorElem = document.createElement('a');
+  dlAnchorElem.setAttribute("href", dataStr);
+  dlAnchorElem.setAttribute("download", "quizmaker_backup_" + Date.now() + ".json");
+  document.body.appendChild(dlAnchorElem);
+  dlAnchorElem.click();
+  dlAnchorElem.remove();
+}
+function importData(input) {
+  var file = input.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error("Format tidak valid");
+      if (confirm('Import data ini akan MENGGABUNGKAN ('+imported.length+' paket) ke aplikasi. Lanjutkan?')) {
+        packages = packages.concat(imported);
+        save(); renderHome();
+        alert('Data berhasil diimport!');
+      }
+    } catch(err) {
+      alert('Gagal mengimport file. Pastikan file backup valid.');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ══ IMAGE UPLOAD ══ */
+var currentImageData = null;
+function triggerImgUpload() { document.getElementById('img-file-input').click(); }
+function handleImageUpload(input) {
+  var file = input.files[0]; if (!file) return;
+  if (file.size > 2*1024*1024) { alert('Ukuran gambar maksimal 2MB!'); input.value=''; return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    currentImageData = e.target.result;
+    document.getElementById('img-preview-wrap').innerHTML = '<img src="'+currentImageData+'" class="img-preview-thumb">';
+    document.getElementById('btn-remove-img').style.display = '';
+  };
+  reader.readAsDataURL(file);
+}
+function removeImage() {
+  currentImageData = null;
+  var pw = document.getElementById('img-preview-wrap');
+  if (pw) pw.innerHTML = '<div class="img-upload-placeholder"><span class="up-icon">&#128247;</span><span>Klik untuk pilih gambar &bull; maks. 2 MB</span></div>';
+  var fi = document.getElementById('img-file-input'); if (fi) fi.value = '';
+  var rb = document.getElementById('btn-remove-img'); if (rb) rb.style.display = 'none';
+}
+
+/* ══ PWA / SERVICE WORKER ══ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault(); deferredPrompt = e;
+  setTimeout(showInstallBanner, 2500);
+});
+window.addEventListener('appinstalled', function() { dismissBanner(); deferredPrompt = null; });
+function showInstallBanner() {
+  if (document.getElementById('pwa-banner') || !deferredPrompt) return;
+  var banner = document.createElement('div');
+  banner.id = 'pwa-banner'; banner.className = 'pwa-banner';
+  banner.innerHTML = '<div class="pwa-icon">&#128242;</div><div class="pwa-text"><strong>Install QuizMaker Pro</strong><span>Tambahkan ke layar utama Android untuk akses offline!</span></div><button class="btn btn-primary btn-sm" onclick="installPWA()">&#8681; Install</button><button class="pwa-banner-close" onclick="dismissBanner()" title="Tutup">&#10005;</button>';
+  document.body.appendChild(banner);
+}
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function() { deferredPrompt=null; dismissBanner(); });
+}
+function dismissBanner() { var b=document.getElementById('pwa-banner'); if(b) b.remove(); }
+
+/* ══ INIT ══ */
+renderHome();
+checkUrlShare();
+</script>
+</body>
+</html>
